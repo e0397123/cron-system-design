@@ -1,0 +1,79 @@
+@page {
+  size: A4;
+  margin: 1.5cm 1.8cm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    font-size: 9pt;
+    color: #888;
+  }
+}
+
+body {
+  font-family: "WenQuanYi Zen Hei", "Noto Sans CJK SC", sans-serif;
+  font-size: 10pt;
+  line-height: 1.55;
+  color: #222;
+}
+
+h1 { font-size: 20pt; color: #1a1a1a; border-bottom: 2px solid #333; padding-bottom: 6px; margin-top: 24px; }
+h2 { font-size: 15pt; color: #1a1a1a; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 22px; }
+h3 { font-size: 12.5pt; color: #2a2a2a; margin-top: 18px; }
+h4 { font-size: 11pt; color: #333; margin-top: 14px; }
+
+p { margin: 8px 0; }
+
+code {
+  font-family: "WenQuanYi Zen Hei Mono", "Consolas", monospace;
+  background: #f4f4f4;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 9pt;
+}
+
+pre {
+  font-family: "WenQuanYi Zen Hei Mono", "Consolas", monospace;
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  border-left: 3px solid #555;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 8.5pt;
+  line-height: 1.35;
+  white-space: pre;
+  overflow-x: auto;
+  page-break-inside: avoid;
+}
+pre code { background: transparent; padding: 0; }
+
+table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  width: 100%;
+  font-size: 9pt;
+  page-break-inside: avoid;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 5px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+th { background: #ececec; font-weight: bold; }
+
+blockquote {
+  border-left: 3px solid #888;
+  margin: 10px 0;
+  padding: 4px 12px;
+  background: #fafafa;
+  color: #444;
+  font-style: italic;
+}
+
+ul, ol { margin: 6px 0; padding-left: 22px; }
+li { margin: 3px 0; }
+
+a { color: #2a5db0; text-decoration: none; }
+
+hr { border: none; border-top: 1px solid #ccc; margin: 18px 0; }
+
+h1, h2, h3, h4 { page-break-after: avoid; }

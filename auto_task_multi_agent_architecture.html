@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>通用多智能体 Auto-Task 架构设计</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style type="text/css">@page {
+size: A4;
+margin: 1.5cm 1.8cm;
+@bottom-center {
+content: counter(page) " / " counter(pages);
+font-size: 9pt;
+color: #888;
+}
+}
+body {
+font-family: "WenQuanYi Zen Hei", "Noto Sans CJK SC", sans-serif;
+font-size: 10pt;
+line-height: 1.55;
+color: #222;
+}
+h1 { font-size: 20pt; color: #1a1a1a; border-bottom: 2px solid #333; padding-bottom: 6px; margin-top: 24px; }
+h2 { font-size: 15pt; color: #1a1a1a; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 22px; }
+h3 { font-size: 12.5pt; color: #2a2a2a; margin-top: 18px; }
+h4 { font-size: 11pt; color: #333; margin-top: 14px; }
+p { margin: 8px 0; }
+code {
+font-family: "WenQuanYi Zen Hei Mono", "Consolas", monospace;
+background: #f4f4f4;
+padding: 1px 4px;
+border-radius: 3px;
+font-size: 9pt;
+}
+pre {
+font-family: "WenQuanYi Zen Hei Mono", "Consolas", monospace;
+background: #f7f7f7;
+border: 1px solid #ddd;
+border-left: 3px solid #555;
+padding: 8px 10px;
+border-radius: 4px;
+font-size: 8.5pt;
+line-height: 1.35;
+white-space: pre;
+overflow-x: auto;
+page-break-inside: avoid;
+}
+pre code { background: transparent; padding: 0; }
+table {
+border-collapse: collapse;
+margin: 10px 0;
+width: 100%;
+font-size: 9pt;
+page-break-inside: avoid;
+}
+th, td {
+border: 1px solid #ccc;
+padding: 5px 8px;
+text-align: left;
+vertical-align: top;
+}
+th { background: #ececec; font-weight: bold; }
+blockquote {
+border-left: 3px solid #888;
+margin: 10px 0;
+padding: 4px 12px;
+background: #fafafa;
+color: #444;
+font-style: italic;
+}
+ul, ol { margin: 6px 0; padding-left: 22px; }
+li { margin: 3px 0; }
+a { color: #2a5db0; text-decoration: none; }
+hr { border: none; border-top: 1px solid #ccc; margin: 18px 0; }
+h1, h2, h3, h4 { page-break-after: avoid; }
+</style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">通用多智能体 Auto-Task 架构设计</h1>
+</header>
+<h1 id="通用多智能体-auto-task-架构设计">通用多智能体 Auto-Task 架构设计</h1>
+<blockquote>
+<p>兼顾<strong>效率</strong>、<strong>可扩展性</strong>、<strong>通用性</strong>，统一支持流式（Streaming）与定时（Cron）触发。 以“定时邮件 / 定期推送”为贯穿示例。</p>
+</blockquote>
+<hr />
+<h2 id="目录">目录</h2>
+<ol type="1">
+<li><a href="#1-设计目标与核心抽象">设计目标与核心抽象</a></li>
+<li><a href="#2-整体架构图">整体架构图</a></li>
+<li><a href="#3-模块详细分析">模块详细分析</a>
+<ul>
+<li>3.1 <a href="#31-trigger-layer触发层">Trigger Layer</a></li>
+<li>3.2 <a href="#32-event-bus事件总线">Event Bus</a></li>
+<li>3.3 <a href="#33-router--dispatcher路由分发层">Router / Dispatcher</a></li>
+<li>3.4 <a href="#34-agent-runtime智能体运行时核心">Agent Runtime</a></li>
+<li>3.5 <a href="#35-memory-layer记忆层">Memory Layer</a></li>
+<li>3.6 <a href="#36-tool-gateway工具网关">Tool Gateway</a></li>
+<li>3.7 <a href="#37-model-router模型路由层">Model Router</a></li>
+<li>3.8 <a href="#38-cross-cutting横切关注点">Cross-Cutting</a></li>
+</ul></li>
+<li><a href="#4-端到端案例定时邮件回复--定期推送">端到端案例：定时邮件回复 / 定期推送</a></li>
+<li><a href="#5-关键设计决策与-trade-offs">关键设计决策与 Trade-offs</a></li>
+<li><a href="#6-演进路径">演进路径</a></li>
+<li><a href="#7-总结">总结</a></li>
+</ol>
+<hr />
+<h2 id="设计目标与核心抽象">1. 设计目标与核心抽象</h2>
+<h3 id="设计目标">1.1 设计目标</h3>
+<table>
+<thead>
+<tr class="header">
+<th>目标</th>
+<th>含义</th>
+<th>落地手段</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>通用性</strong></td>
+<td>支持任意 task / 任意触发源</td>
+<td>声明式 manifest + 可插拔 Emitter</td>
+</tr>
+<tr class="even">
+<td><strong>效率</strong></td>
+<td>高吞吐 + 低延迟 + 低成本</td>
+<td>微批 + 分区 + 池化 + 模型分级</td>
+</tr>
+<tr class="odd">
+<td><strong>可扩展性</strong></td>
+<td>新事件 / 新 agent / 新工具零侵入</td>
+<td>事件总线解耦 + Schema Registry</td>
+</tr>
+<tr class="even">
+<td><strong>流式 + 定时统一</strong></td>
+<td>两种触发同源同流处理</td>
+<td>Cron 视为周期性事件源</td>
+</tr>
+<tr class="odd">
+<td><strong>多智能体协作</strong></td>
+<td>Agent 之间天然组合</td>
+<td>通过事件总线通信，不走 RPC</td>
+</tr>
+</tbody>
+</table>
+<h3 id="核心抽象三个一等公民">1.2 核心抽象（三个一等公民）</h3>
+<table>
+<thead>
+<tr class="header">
+<th>概念</th>
+<th>职责</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Trigger</strong></td>
+<td>决定“何时”</td>
+<td>cron / stream / webhook / manual / agent-emit</td>
+</tr>
+<tr class="even">
+<td><strong>Event</strong></td>
+<td>统一的触发信号（不可变 envelope）</td>
+<td><code>email.received</code>, <code>cron.tick.daily</code></td>
+</tr>
+<tr class="odd">
+<td><strong>Agent</strong></td>
+<td>决定“做什么”（LLM + Memory + Tools + Goal）</td>
+<td><code>email-triage</code>, <code>email-draft</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键设计原则：Trigger 与 Agent 通过 Event 完全解耦。</strong> 这一刀切下去，“流式 + 定时 + 任意未来触发源 + 任意未来 agent” 就天然可组合。</p>
+<hr />
+<h2 id="整体架构图">2. 整体架构图</h2>
+<pre><code>╔══════════════════════════════════════════════════════════════════════════════════╗
+║                         EXTERNAL  WORLD                                           ║
+║   CLI / UI    Webhooks    Files / DB CDC    Schedules    上游 Agent 输出         ║
+╚════╤═══════════╤══════════════╤═════════════════╤═════════════╤═════════════════╝
+     │           │              │                 │             │
+─────┼───────────┼──────────────┼─────────────────┼─────────────┼──────────────────
+     ▼           ▼              ▼                 ▼             ▼
+
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  ①  TRIGGER  LAYER   (可插拔 Emitter，统一输出 Event Envelope)                   │
+│ ┌────────┐ ┌─────────┐ ┌──────────┐ ┌─────────────┐ ┌──────────────────────────┐│
+│ │ Manual │ │ Webhook │ │  Stream  │ │    Cron     │ │  AgentEmitter            ││
+│ │        │ │ HMAC+   │ │ 微批+    │ │ timing-wheel│ │  agent 自身输出          ││
+│ │        │ │ replay  │ │ 分区     │ │ + leader    │ │  → multi-agent 协作     ││
+│ └────┬───┘ └────┬────┘ └────┬─────┘ └──────┬──────┘ └────────────┬─────────────┘│
+└──────┼──────────┼───────────┼──────────────┼─────────────────────┼──────────────┘
+       └──────────┴───────────┴──────────────┴─────────────────────┘
+                                    │  Envelope {topic, schema_v, ts, dedup_key,
+                                    │            trace_id, payload, source}
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  ②  EVENT  BUS   (Kafka / Pulsar)                                                │
+│       topic 命名: domain.entity.action     partition by dedup_key                 │
+│  ┌────────────────────────────────────────────────────────────────────────┐     │
+│  │  cron.tick.*  │  email.*  │  agent.*  │  approval.*  │  github.*  …    │     │
+│  └────────────────────────────────────────────────────────────────────────┘     │
+│       Schema Registry (envelope 只增不改 + payload schema 版本化)                │
+└──────────────────────────────────┬───────────────────────────────────────────────┘
+                                   ▼
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  ③  ROUTER  /  DISPATCHER   (stateless, 水平扩展)                                │
+│   topic→agent 路由  │  dedup 去重  │  rate-limit  │  优先级  │  DAG / 链式触发  │
+│   双轨路由: 配置规则优先匹配 → 未命中走 LLM 智能路由                              │
+└──────────────────────────────────┬───────────────────────────────────────────────┘
+                                   ▼
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║  ④  🧠  AGENT  RUNTIME    (核心新增层)                                            ║
+║                                                                                   ║
+║   ┌─────────────────────────────────────────────────────────────────────┐       ║
+║   │   Agent Loader  ─→  按 manifest 实例化 / 从 checkpoint 恢复          │       ║
+║   │        │                                                              │       ║
+║   │        ▼                                                              │       ║
+║   │   ┌─────────────────────────────────────────────────────────────┐   │       ║
+║   │   │  ┌──────────────┐    ┌────────────┐    ┌──────────────┐    │   │       ║
+║   │   │  │ Context      │ →  │ LLM        │ →  │ Tool         │    │   │       ║
+║   │   │  │ Builder      │    │ Inference  │    │ Dispatcher   │    │   │       ║
+║   │   │  │(memory+event)│    │ (think)    │    │ (act)        │    │   │       ║
+║   │   │  └──────────────┘    └────────────┘    └──────┬───────┘    │   │       ║
+║   │   │         ▲                                      │             │   │       ║
+║   │   │         │              ◄─── observe ◄──────────┘             │   │       ║
+║   │   │         └──────────────── loop ────────────────              │   │       ║
+║   │   └─────────────────────────────────────────────────────────────┘   │       ║
+║   │        │                                                              │       ║
+║   │        ▼                                                              │       ║
+║   │   3 种 Agent 形态:                                                    │       ║
+║   │     • reactive       单事件 → 跑完销毁                                │       ║
+║   │     • periodic       cron tick → 跑完销毁                             │       ║
+║   │     • long-running   wait_any(inbox, next_wakeup)  ← 流+定时统一      │       ║
+║   │                                                                       │       ║
+║   │   横切能力: Budget Guard │ Checkpoint │ Approval Hook │ Schema 校验  │       ║
+║   └─────┬─────────────────┬─────────────────┬───────────────┬───────────┘       ║
+╚═════════┼═════════════════┼═════════════════┼═══════════════┼═══════════════════╝
+          ▼                 ▼                 ▼               │ emit follow-up event
+                                                              │
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐│
+│ ⑤ MEMORY  LAYER │ │ ⑥ TOOL  GATEWAY │ │ ⑦ MODEL  ROUTER │└──→ 回到 ② Event Bus
+│                  │ │                  │ │                  │       (multi-agent
+│  Working         │ │  MCP Registry    │ │  Haiku  路由分类 │        协作 = 自然)
+│  (Redis KV)      │ │  (统一工具接口)  │ │  Sonnet 默认     │
+│  ─ 当前 run 状态│ │                  │ │  Opus   复杂推理│
+│                  │ │  Sandbox         │ │                  │
+│  Episodic        │ │  (file/net/exec  │ │  Prompt Cache    │
+│  (Postgres)      │ │   分级权限)      │ │  (高命中率)      │
+│  ─ 历史 trace   │ │                  │ │                  │
+│                  │ │  Approval Hook   │ │  Adaptive 降级   │
+│  Semantic        │ │  (高危→人审)     │ │  (预算告急自动   │
+│  (VectorDB)      │ │                  │ │   切小模型)     │
+│  ─ 知识/经验    │ │  Audit Log       │ │                  │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  ⑧  CROSS-CUTTING  (横切关注点)                                                  │
+│                                                                                   │
+│  State Store      ─ PG (持久化/审计) + Redis (幂等/锁/计数)                      │
+│  DLQ + Replay     ─ 死信队列 + 重放工具                                          │
+│  Observability    ─ Metrics(Prometheus) + Trace(OTel) + LLM-Trace(Langfuse)     │
+│  Cost Guard       ─ per-agent / per-tenant / 全局 三级熔断                       │
+│  Multi-tenancy    ─ namespace 隔离 / 配额                                        │
+│  Secrets          ─ Vault / KMS                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘</code></pre>
+<h3 id="数据流编号">2.1 数据流编号</h3>
+<pre><code>  外部信号
+     │
+     ▼  ①  Emitter 把异构源转成统一 envelope
+  Trigger Layer
+     │
+     ▼  ②  发布到 Event Bus（按 dedup_key 分区）
+  Event Bus  ◄──────────────────────────────────────┐
+     │                                                │
+     ▼  ③  Router 按 topic 路由 + 去重 + 限流        │
+  Router                                              │
+     │                                                │
+     ▼  ④  Agent Runtime 加载 agent 实例             │
+  Agent (think-act-observe loop)                      │
+     │ │ │                                            │
+     │ │ └──→ ⑤ 读写 Memory (Working/Episodic/Sem)   │
+     │ └────→ ⑥ 调用 Tool (经 Gateway 鉴权/审计)     │
+     └──────→ ⑦ 推理 (Model Router 选模型/走 Cache) │
+     │                                                │
+     ▼  agent 输出可发新事件                          │
+   emit_event ─────────────────────────────────────►─┘
+                  (multi-agent 协作天然形成)</code></pre>
+<h3 id="流式-定时融合的关键">2.2 流式 + 定时融合的关键</h3>
+<pre><code>        ┌──────────────────────────────────────────────────┐
+        │         Long-Running Agent  内部循环              │
+        │                                                   │
+        │   ┌───────────────────────────────────────┐      │
+        │   │    wait_any(  inbox  ,  next_wakeup ) │      │
+        │   └───────┬─────────────────────┬─────────┘      │
+        │           │                     │                 │
+        │     [流式事件到达]         [定时器到点]            │
+        │           │                     │                 │
+        │           └──────────┬──────────┘                 │
+        │                      ▼                            │
+        │              ┌───────────────┐                    │
+        │              │  LLM think    │                    │
+        │              │ + tool act    │                    │
+        │              │ + memory r/w  │                    │
+        │              └───────┬───────┘                    │
+        │                      ▼                            │
+        │           ┌──────────────────────┐                │
+        │           │ LLM 自决:            │                │
+        │           │ next_wakeup = ?      │ ←── 动态自适应│
+        │           │ (5min / 1h / 不再醒) │                │
+        │           └──────────┬───────────┘                │
+        │                      │                            │
+        │                      └──── 回到 wait_any ─────────┤
+        └──────────────────────────────────────────────────┘</code></pre>
+<blockquote>
+<p><strong>流式给 inbox，定时给 timer，Agent 自己决定下一次什么时候醒——这是流式与定时的真正统一。</strong></p>
+</blockquote>
+<hr />
+<h2 id="模块详细分析">3. 模块详细分析</h2>
+<h3 id="trigger-layer触发层">3.1 Trigger Layer（触发层）</h3>
+<p><strong>职责</strong>：把异构外部信号（HTTP / 文件 / cron / MQ / agent 输出）转成<strong>统一 Event Envelope</strong>，发布到总线。这一层是兼容性的入口。</p>
+<p><strong>内部组成</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Emitter</th>
+<th>实现要点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ManualEmitter</code></td>
+<td>CLI / UI 直接 publish，主要用于开发调试</td>
+</tr>
+<tr class="even">
+<td><code>WebhookEmitter</code></td>
+<td>HTTP server + HMAC 签名校验 + nonce 去重 + 5 分钟时间窗</td>
+</tr>
+<tr class="odd">
+<td><code>StreamEmitter</code></td>
+<td>长连接（SSE / WS / Kafka 消费），<strong>100ms 微批聚合</strong>，按 dedup_key 分区</td>
+</tr>
+<tr class="even">
+<td><code>CronEmitter</code></td>
+<td><strong>timing wheel</strong>（O(1) 入队）+ Redis/etcd <strong>leader election</strong> 防多实例重复</td>
+</tr>
+<tr class="odd">
+<td><code>AgentEmitter</code></td>
+<td>Agent 输出直接 publish，让 multi-agent 协作走总线</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关键设计</strong></p>
+<ul>
+<li><strong>Emitter 接口统一</strong>：<code>emit(envelope) → bus</code>，新源 = 新实现，平台代码零改动</li>
+<li><strong>Cron 高可用</strong>：多实例 + 分布式锁选主；持久化 <code>last_fire_ts</code>，重启后 catch-up 漏触发</li>
+<li><strong>背压</strong>：StreamEmitter 监控 bus producer lag，超阈值触发 token bucket 限流</li>
+<li><strong>重放保护</strong>：WebhookEmitter 用 nonce + 时间窗，5 分钟内同 nonce 拒绝</li>
+</ul>
+<p><strong>Envelope 格式</strong></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>  <span class="dt">&quot;event_id&quot;</span><span class="fu">:</span>       <span class="st">&quot;uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>  <span class="dt">&quot;topic&quot;</span><span class="fu">:</span>          <span class="st">&quot;domain.entity.action&quot;</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>  <span class="dt">&quot;schema_version&quot;</span><span class="fu">:</span> <span class="st">&quot;v1&quot;</span><span class="fu">,</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>  <span class="dt">&quot;ts&quot;</span><span class="fu">:</span>             <span class="dv">1714521600</span><span class="fu">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>  <span class="dt">&quot;source&quot;</span><span class="fu">:</span>         <span class="st">&quot;stream-emitter-7&quot;</span><span class="fu">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>  <span class="dt">&quot;dedup_key&quot;</span><span class="fu">:</span>      <span class="st">&quot;msg:abc123&quot;</span><span class="fu">,</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>  <span class="dt">&quot;trace_id&quot;</span><span class="fu">:</span>       <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>  <span class="dt">&quot;tenant_id&quot;</span><span class="fu">:</span>      <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a>  <span class="dt">&quot;payload&quot;</span><span class="fu">:</span>        <span class="fu">{</span> <span class="er">...</span> <span class="fu">}</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Trade-off</strong></p>
+<ul>
+<li>微批 vs 实时：100ms 聚合损失少量延迟，换 10× 吞吐——绝大多数场景值</li>
+<li>Cron 集中 vs 分散：集中（一个 CronEmitter 服务）易管理；分散（每个 agent 自带 cron）灵活但难限流。<strong>选集中</strong>。</li>
+</ul>
+<hr />
+<h3 id="event-bus事件总线">3.2 Event Bus（事件总线）</h3>
+<p><strong>职责</strong>：所有事件的统一中枢，提供持久化、有序、可重放的消息传递。</p>
+<p><strong>选型对比</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>方案</th>
+<th>优势</th>
+<th>劣势</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Kafka</strong></td>
+<td>吞吐巨大、生态完善</td>
+<td>无原生 delay queue、运维重</td>
+<td>大规模生产</td>
+</tr>
+<tr class="even">
+<td><strong>Pulsar</strong></td>
+<td>多租户、原生 delay、分层存储</td>
+<td>社区小一些</td>
+<td>多租户平台</td>
+</tr>
+<tr class="odd">
+<td><strong>NATS JetStream</strong></td>
+<td>轻量、低延迟</td>
+<td>吞吐不及 Kafka</td>
+<td>中小规模</td>
+</tr>
+<tr class="even">
+<td><strong>Redis Streams</strong></td>
+<td>部署简单</td>
+<td>持久化弱、规模有限</td>
+<td>早期 / 单机</td>
+</tr>
+</tbody>
+</table>
+<p><strong>默认选 Kafka</strong>，delay 场景外挂 Pulsar 或自建 delay topic。</p>
+<p><strong>关键设计</strong></p>
+<ul>
+<li><strong>Topic 命名</strong>：<code>domain.entity.action</code>（如 <code>email.received</code>），支持通配订阅 <code>email.*</code></li>
+<li><strong>分区策略</strong>：<code>partition = hash(dedup_key) % N</code>，保证同 key 顺序 + worker 水平扩展</li>
+<li><strong>Schema Registry</strong>：每个 topic 注册 payload schema + 版本，<strong>只增字段不改语义</strong></li>
+<li><strong>保留期分级</strong>：高频事件 1 天，业务事件 7 天，审计事件 30 天</li>
+<li><strong>投递语义</strong>：<strong>at-least-once</strong>，业务侧用 <code>dedup_key</code> 幂等</li>
+</ul>
+<p><strong>关键决策：要不要 exactly-once？</strong></p>
+<p>不要。代价 = 严重吞吐损失 + 复杂度。<strong>业务幂等才是正解</strong>。</p>
+<p><strong>Trade-off</strong></p>
+<ul>
+<li>分区数：多了 → 并发高但 rebalance 慢；少了 → 吞吐瓶颈。经验值：预估峰值 QPS / 单分区 5k</li>
+<li>保留期：长 → 可重放但贵；短 → 省钱但丢历史。按事件价值分级</li>
+</ul>
+<hr />
+<h3 id="router-dispatcher路由分发层">3.3 Router / Dispatcher（路由分发层）</h3>
+<p><strong>职责</strong>：把事件路由到正确的 agent，附带去重、限流、优先级、链式编排。<strong>stateless，水平扩展</strong>。</p>
+<p><strong>内部组成</strong></p>
+<pre><code>┌───────────────────────────────────────────┐
+│  Topic Matcher (规则 + 通配)              │
+│       ↓                                    │
+│  Idempotency Filter (查 Redis)            │
+│       ↓                                    │
+│  Rate Limiter (token bucket per agent)    │
+│       ↓                                    │
+│  Priority Queue (high/normal/low)         │
+│       ↓                                    │
+│  Agent Dispatcher → Agent Runtime         │
+└───────────────────────────────────────────┘</code></pre>
+<p><strong>关键设计</strong></p>
+<ul>
+<li><strong>双轨路由</strong>
+<ul>
+<li><strong>Fast path（配置规则）</strong>：<code>topic_pattern → agent_id</code> YAML，毫秒级匹配</li>
+<li><strong>Slow path（LLM 智能路由）</strong>：未命中规则 → 调用 Haiku 判断该交给哪个 agent</li>
+</ul></li>
+<li><strong>去重</strong>：<code>SETNX dedup_key EX ttl</code>，已存在则丢弃</li>
+<li><strong>限流</strong>：每个 agent 一个 token bucket（QPS / concurrency 双约束）</li>
+<li><strong>DAG / 链式</strong>：agent A 完成发新事件 → router 触发 agent B（<strong>不在 router 里硬编码 DAG</strong>）</li>
+<li><strong>环检测</strong>：trace_id 串起整条链，深度超阈值 / 检出环则告警 + 截断</li>
+</ul>
+<p><strong>路由表示例</strong></p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="fu">routes</span><span class="kw">:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">topic</span><span class="kw">:</span><span class="at"> email.received</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a><span class="at">    </span><span class="fu">agent</span><span class="kw">:</span><span class="at"> email-triage</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a><span class="at">    </span><span class="fu">priority</span><span class="kw">:</span><span class="at"> high</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">topic</span><span class="kw">:</span><span class="at"> email.draft.requested</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true"></a><span class="at">    </span><span class="fu">agent</span><span class="kw">:</span><span class="at"> email-draft</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true"></a><span class="at">    </span><span class="fu">rate_limit</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">qps</span><span class="kw">:</span><span class="at"> </span><span class="dv">5</span><span class="at"> </span><span class="kw">}</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">topic</span><span class="kw">:</span><span class="at"> cron.tick.email-followup</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true"></a><span class="at">    </span><span class="fu">agent</span><span class="kw">:</span><span class="at"> email-followup</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">topic</span><span class="kw">:</span><span class="at"> email.draft.ready</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true"></a><span class="at">    </span><span class="fu">agent</span><span class="kw">:</span><span class="at"> email-send</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">topic</span><span class="kw">:</span><span class="at"> github.*</span><span class="co">               # 通配</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true"></a><span class="at">    </span><span class="fu">agent</span><span class="kw">:</span><span class="at"> github-handler</span></span></code></pre></div>
+<hr />
+<h3 id="agent-runtime智能体运行时核心">3.4 Agent Runtime（智能体运行时——核心）</h3>
+<p><strong>职责</strong>：执行 agent 的 think-act-observe 循环，管理生命周期、状态、预算、安全。</p>
+<p><strong>内部组成</strong></p>
+<pre><code>┌──────────────────────────────────────────────────────┐
+│   Agent Loader                                        │
+│   ─ 按 manifest 实例化 / 从 checkpoint 恢复          │
+└────────────────┬─────────────────────────────────────┘
+                 ▼
+┌──────────────────────────────────────────────────────┐
+│   Context Builder                                     │
+│   ─ 拉 working / episodic / semantic memory          │
+│   ─ 拼 system prompt + recent events                 │
+│   ─ token budget 控制（超了走 compression）          │
+└────────────────┬─────────────────────────────────────┘
+                 ▼
+       ┌─────────────────────┐
+       │  ┌───────────────┐  │
+       │  │ LLM Inference │  │  ← 通过 Model Router
+       │  │   (think)     │  │
+       │  └───────┬───────┘  │
+       │          ▼          │
+       │  ┌───────────────┐  │
+       │  │ Tool Dispatch │  │  ← 通过 Tool Gateway
+       │  │   (act)       │  │
+       │  └───────┬───────┘  │
+       │          ▼          │
+       │  ┌───────────────┐  │
+       │  │  Observation  │  │
+       │  │  (write back  │  │
+       │  │   to memory)  │  │
+       │  └───────┬───────┘  │
+       │          │          │
+       │  ◄───────┘          │
+       │   loop until done   │
+       └─────────┬───────────┘
+                 ▼
+┌──────────────────────────────────────────────────────┐
+│   横切控制                                             │
+│   • Budget Guard   (tokens / cost / walltime)        │
+│   • Checkpoint     (每 N turns 持久化状态)           │
+│   • Approval Hook  (高危工具调用拦截)                │
+│   • Output Schema  (LLM 输出 JSON Schema 校验)       │
+│   • Emit Event     (输出 follow-up event)            │
+└──────────────────────────────────────────────────────┘</code></pre>
+<p><strong>三种 Agent 形态</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>形态</th>
+<th>进程模型</th>
+<th>状态</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Reactive</strong></td>
+<td>短进程，pool 复用</td>
+<td>无状态</td>
+<td>分类、回复</td>
+</tr>
+<tr class="even">
+<td><strong>Periodic</strong></td>
+<td>短进程，每次重建</td>
+<td>通过 memory 持久化</td>
+<td>监控、巡检</td>
+</tr>
+<tr class="odd">
+<td><strong>Long-running</strong></td>
+<td>常驻 actor，状态在内存</td>
+<td>内存 + 周期性 checkpoint</td>
+<td>协作、复杂状态机</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Long-running Agent 核心循环（伪代码）</strong></p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="cf">async</span> <span class="kw">def</span> run(<span class="va">self</span>):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>    <span class="cf">while</span> <span class="kw">not</span> <span class="va">self</span>.done:</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>        signal <span class="op">=</span> <span class="cf">await</span> wait_any(<span class="va">self</span>.inbox, timer(<span class="va">self</span>.next_wakeup))</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a>        plan   <span class="op">=</span> <span class="cf">await</span> <span class="va">self</span>.llm.think(<span class="va">self</span>.memory, signal)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true"></a>        result <span class="op">=</span> <span class="cf">await</span> <span class="va">self</span>.tools.execute(plan.actions)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true"></a>        <span class="va">self</span>.memory.update(result)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true"></a>        <span class="co"># LLM 自决下一次唤醒时间（动态自适应）</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true"></a>        <span class="va">self</span>.next_wakeup <span class="op">=</span> <span class="va">self</span>.llm.decide_wakeup(result)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true"></a>        <span class="cf">if</span> <span class="va">self</span>.turn_count <span class="op">%</span> CHECKPOINT_EVERY <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true"></a>            <span class="cf">await</span> <span class="va">self</span>.persist()</span></code></pre></div>
+<p><strong>关键设计</strong></p>
+<ul>
+<li><strong>状态序列化</strong>：memory + inbox cursor + turn_count → JSON 落 PG，崩溃可恢复</li>
+<li><strong>Budget Guard</strong>：每次 LLM 调用前预估 tokens，超 budget 直接终止 + emit <code>agent.budget.exceeded</code></li>
+<li><strong>Approval Hook</strong>：tool manifest 标记 <code>require_approval: true</code> → runtime 暂停 + 发审批 → 等回调</li>
+<li><strong>Output Schema 校验</strong>：LLM 返回 JSON 不符 schema → 自动 retry（最多 N 次）→ 还不行 emit 错误事件</li>
+</ul>
+<p><strong>Trade-off</strong></p>
+<ul>
+<li>长寿命 vs 短寿命：长寿命延迟低、context warm，但占内存；短寿命可弹性伸缩。<strong>默认 reactive</strong></li>
+<li>Sub-agent 派生 vs 单 agent 长上下文：派生隔离 context 但增加协调；长上下文简单但易爆。<strong>长流程必派生</strong></li>
+</ul>
+<hr />
+<h3 id="memory-layer记忆层">3.5 Memory Layer（记忆层）</h3>
+<p><strong>职责</strong>：给 agent 提供短期/中期/长期记忆，支撑跨 run 的状态延续和经验复用。</p>
+<p><strong>三层结构</strong></p>
+<table>
+<colgroup>
+<col style="width: 9%"></col>
+<col style="width: 18%"></col>
+<col style="width: 18%"></col>
+<col style="width: 27%"></col>
+<col style="width: 27%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th>层</th>
+<th>存储</th>
+<th>内容</th>
+<th>写入时机</th>
+<th>读取时机</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Working</strong></td>
+<td>Redis KV</td>
+<td>当前 run 的变量/计数器/中间状态</td>
+<td>tool 执行后</td>
+<td>每个 turn 开始</td>
+</tr>
+<tr class="even">
+<td><strong>Episodic</strong></td>
+<td>Postgres</td>
+<td>历史 event/action/observation 序列</td>
+<td>每个 turn 结束</td>
+<td>run 启动 / 回放</td>
+</tr>
+<tr class="odd">
+<td><strong>Semantic</strong></td>
+<td>Vector DB (Weaviate/Qdrant)</td>
+<td>知识、文档、经验摘要</td>
+<td>显式 <code>remember()</code></td>
+<td>retrieval-on-demand</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Context Builder 算法</strong></p>
+<pre><code>budget = max_tokens - reserved_for_response
+1. 拉 system prompt                     [固定]
+2. 拉 working memory 全量               [必含]
+3. 拉最近 N 条 episodic（按时间倒序）    [可裁剪]
+4. 按当前 query 向 semantic 检索 top-K  [可裁剪]
+5. 拼装：system + semantic + episodic + working + current_event
+6. 若超 budget → 触发 compression（旧 episodic 摘要替换）</code></pre>
+<p><strong>关键设计</strong></p>
+<ul>
+<li><strong>Compression 策略</strong>：滑动窗口 + LLM 摘要旧 turns，把详细 trace 换成短摘要</li>
+<li><strong>Sub-agent 隔离</strong>：父 agent 派生子 agent 时，子 agent context 全新，结果摘要回流</li>
+<li><strong>Semantic write 节流</strong>：不是每个 observation 都写 vector DB，要 LLM 判断“值不值得记”</li>
+<li><strong>Memory namespace</strong>：<code>agent_id : tenant_id : session_id</code>，多租户硬隔离</li>
+</ul>
+<p><strong>Trade-off</strong></p>
+<ul>
+<li>全量上下文 vs 摘要：全量准确但贵；摘要省钱但丢细节。<strong>冷数据摘要、热数据全量</strong></li>
+<li>共享 memory vs 隔离：共享便于协作但隔离性差。<strong>默认隔离，shared 显式声明</strong></li>
+</ul>
+<hr />
+<h3 id="tool-gateway工具网关">3.6 Tool Gateway（工具网关）</h3>
+<p><strong>职责</strong>：所有工具调用的统一入口，提供注册、鉴权、沙箱、审计。</p>
+<p><strong>内部组成</strong></p>
+<pre><code>┌────────────────────────────────────┐
+│  Tool Registry (MCP-style)          │
+│  ─ 工具元信息 / schema             │
+│  ─ 版本 / 兼容性                   │
+└──────────┬─────────────────────────┘
+           ▼
+┌────────────────────────────────────┐
+│  Permission Check                   │
+│  ─ agent → tool ACL                │
+│  ─ tenant → tool quota             │
+└──────────┬─────────────────────────┘
+           ▼
+┌────────────────────────────────────┐
+│  Approval Hook (高危工具)           │
+│  ─ 暂停 → 通知 → 等审批回调        │
+└──────────┬─────────────────────────┘
+           ▼
+┌────────────────────────────────────┐
+│  Sandbox Executor                   │
+│  ─ file: chroot / 容器             │
+│  ─ network: egress allowlist       │
+│  ─ exec: gVisor / firecracker      │
+└──────────┬─────────────────────────┘
+           ▼
+┌────────────────────────────────────┐
+│  Audit Log (every call)             │
+└────────────────────────────────────┘</code></pre>
+<p><strong>关键设计</strong></p>
+<ul>
+<li><strong>MCP 协议统一</strong>：所有工具实现 <code>{ name, schema, invoke(input) → output }</code>，新工具即插即用</li>
+<li><strong>三级权限沙箱</strong>
+<ul>
+<li><strong>L1（read-only）</strong>：本地直接跑</li>
+<li><strong>L2（写本地 / 调外部 API）</strong>：容器隔离</li>
+<li><strong>L3（执行任意代码 / 高权限 API）</strong>：microVM + approval</li>
+</ul></li>
+<li><strong>Approval 流程</strong>：tool manifest 标记 → runtime 调用前发审批请求到 Slack/钉钉 → 用户回调 → 继续/拒绝</li>
+<li><strong>Audit log</strong>：每次调用持久化 <code>{agent, tool, input, output, ts, trace_id}</code>，可回溯/合规</li>
+<li><strong>Idempotency</strong>：工具调用支持 <code>idempotency_key</code>，重复调用返回原结果</li>
+</ul>
+<p><strong>Trade-off</strong></p>
+<ul>
+<li>沙箱强度 vs 启动延迟：microVM 强但启动慢；容器弱但快。<strong>按权限级别选</strong></li>
+<li>集中 Gateway vs 直连：集中便于审计但加一跳延迟；直连快但失控。<strong>业务工具集中，热路径白名单直连</strong></li>
+</ul>
+<hr />
+<h3 id="model-router模型路由层">3.7 Model Router（模型路由层）</h3>
+<p><strong>职责</strong>：根据任务复杂度、预算、延迟要求，把推理请求路由到合适的模型，最大化 cost / quality 比。</p>
+<p><strong>内部组成</strong></p>
+<pre><code>┌────────────────────────────────────┐
+│  Request Classifier                 │
+│  ─ Haiku 快速判断任务复杂度        │
+│  ─ 或按 manifest 静态指定          │
+└──────────┬─────────────────────────┘
+           ▼
+┌────────────────────────────────────┐
+│  Model Selector                     │
+│  ─ Haiku   (路由/分类/简单回复)    │
+│  ─ Sonnet  (默认，性价比高)        │
+│  ─ Opus    (复杂推理/规划)         │
+└──────────┬─────────────────────────┘
+           ▼
+┌────────────────────────────────────┐
+│  Prompt Cache Manager               │
+│  ─ system prompt + 长 context 缓存│
+│  ─ 命中率监控                      │
+└──────────┬─────────────────────────┘
+           ▼
+┌────────────────────────────────────┐
+│  Provider Adapter                   │
+│  ─ Anthropic / OpenAI / 本地       │
+│  ─ 故障切换 / 重试                 │
+└──────────┬─────────────────────────┘
+           ▼
+┌────────────────────────────────────┐
+│  Cost Tracker                       │
+│  ─ per-agent / per-tenant 计费     │
+└────────────────────────────────────┘</code></pre>
+<p><strong>关键设计</strong></p>
+<ul>
+<li><strong>Adaptive 降级</strong>：tenant 当月预算剩 10% → 自动 Opus → Sonnet 降级 + 通知</li>
+<li><strong>Prompt Cache 优化</strong>：固定 system prompt 写最前，提升缓存命中（Anthropic prompt cache TTL 5 分钟）</li>
+<li><strong>Streaming 支持</strong>：长输出走 streaming，降低首 token 延迟</li>
+<li><strong>Provider 抽象</strong>：统一适配 Anthropic / OpenAI / 自部署，故障可切换</li>
+</ul>
+<p><strong>Trade-off</strong></p>
+<ul>
+<li>智能路由 vs 静态指定：智能贵但精准；静态便宜但僵硬。<strong>默认静态，复杂任务智能</strong></li>
+<li>多 provider vs 单 provider：多 provider 容灾但适配成本；单 provider 简单但有锁定风险。<strong>关键场景多 provider</strong></li>
+</ul>
+<hr />
+<h3 id="cross-cutting横切关注点">3.8 Cross-Cutting（横切关注点）</h3>
+<p>不是单独服务，而是<strong>贯穿所有模块的能力</strong>。</p>
+<h4 id="state-store">3.8.1 State Store</h4>
+<ul>
+<li><strong>Postgres</strong>：持久化 agent state、checkpoint、event 审计、approval 记录</li>
+<li><strong>Redis</strong>：幂等去重（SETNX）、限流计数、分布式锁、agent inbox</li>
+<li><strong>设计原则</strong>：热路径 Redis（毫秒级），持久化 Postgres（强一致）</li>
+</ul>
+<h4 id="dlq-replay">3.8.2 DLQ + Replay</h4>
+<ul>
+<li>路由 / 执行失败的事件进 DLQ topic</li>
+<li>Replay 工具：CLI / UI 触发重放，可改路由 / payload 后重发</li>
+<li><strong>保护机制</strong>：DLQ 也有上限，溢出告警</li>
+</ul>
+<h4 id="observability">3.8.3 Observability</h4>
+<p>不只是普通指标，还要 <strong>LLM trace</strong>：</p>
+<ul>
+<li><strong>Metrics（Prometheus）</strong>：QPS / 延迟 / 错误率 / 队列深度 / agent concurrency</li>
+<li><strong>Trace（OpenTelemetry）</strong>：跨 emitter → bus → router → agent → tool 全链路 trace_id</li>
+<li><strong>LLM Trace（Langfuse）</strong>：每次推理的 prompt / completion / tokens / cost / model / latency</li>
+<li><strong>Decision Log</strong>：agent 每个 turn 的 reasoning 摘要，便于事后审计</li>
+<li><strong>Dashboard</strong>：per-agent 健康度、cost trend、tool 失败率</li>
+</ul>
+<h4 id="cost-guard三级熔断">3.8.4 Cost Guard（三级熔断）</h4>
+<pre><code>per-agent budget    → 单 agent 单次 / 单日预算
+per-tenant budget   → 租户月预算
+global circuit      → 全局成本告急熔断（防失控）</code></pre>
+<h4 id="multi-tenancy">3.8.5 Multi-tenancy</h4>
+<ul>
+<li>Namespace 隔离：<code>tenant_id</code> 贯穿 envelope / memory key / metric label</li>
+<li>配额：per-tenant QPS / concurrency / cost</li>
+<li>数据隔离：memory / audit log 物理或逻辑隔离</li>
+</ul>
+<h4 id="secrets">3.8.6 Secrets</h4>
+<ul>
+<li>Vault / KMS 集中管理</li>
+<li>Agent 通过 short-lived token 拿 secret</li>
+<li>审计：哪个 agent 拿了哪个 secret</li>
+</ul>
+<hr />
+<h2 id="端到端案例定时邮件回复-定期推送">4. 端到端案例：定时邮件回复 / 定期推送</h2>
+<h3 id="任务拆解">4.1 任务拆解</h3>
+<p>普通人听到“自动回复邮件”会写脚本+cron 完事。Senior 要拆出来：</p>
+<table>
+<thead>
+<tr class="header">
+<th>子能力</th>
+<th>触发方式</th>
+<th>形态</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>新邮件到达立刻判断要不要回</td>
+<td>流式 (Gmail webhook)</td>
+<td>reactive</td>
+</tr>
+<tr class="even">
+<td>起草回复内容</td>
+<td>流式（接 triage 输出）</td>
+<td>reactive</td>
+</tr>
+<tr class="odd">
+<td>发送前要不要审批</td>
+<td>流式 + human-in-loop</td>
+<td>reactive</td>
+</tr>
+<tr class="even">
+<td>超过 24h 没回的提醒 / 重发</td>
+<td>定时 (cron)</td>
+<td>periodic</td>
+</tr>
+<tr class="odd">
+<td>学习用户的回复风格</td>
+<td>隐式背景</td>
+<td>写 memory</td>
+</tr>
+</tbody>
+</table>
+<p><strong>这一拆 → 流式 + 定时 + multi-agent + memory + approval 全用上了</strong>。</p>
+<h3 id="multi-agent-设计">4.2 Multi-Agent 设计</h3>
+<p>四个 agent 协作完成一件事，用户<strong>只写 manifest</strong>，不写一行平台代码：</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true"></a><span class="co"># ============ triage agent (流式入口) ============</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true"></a><span class="fu">agent</span><span class="kw">:</span><span class="at"> email-triage</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true"></a><span class="fu">type</span><span class="kw">:</span><span class="at"> reactive</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true"></a><span class="fu">model</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">primary</span><span class="kw">:</span><span class="at"> claude-haiku-4.5 </span><span class="kw">}</span><span class="co">      # 分类用 Haiku 够</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true"></a><span class="fu">triggers</span><span class="kw">:</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">event</span><span class="kw">:</span><span class="at"> email.received</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true"></a><span class="fu">tools</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">gmail.read</span><span class="kw">,</span><span class="at"> contact.lookup</span><span class="kw">]</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true"></a><span class="fu">memory</span><span class="kw">:</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true"></a><span class="at">  </span><span class="fu">semantic</span><span class="kw">:</span><span class="at"> vector://user-email-style</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true"></a><span class="fu">output</span><span class="kw">:</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true"></a><span class="at">  </span><span class="fu">emit_events</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">email.draft.requested</span><span class="kw">,</span><span class="at"> email.ignored</span><span class="kw">]</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true"></a><span class="fu">budget</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">tokens_per_run</span><span class="kw">:</span><span class="at"> 5k</span><span class="kw">,</span><span class="at"> </span><span class="fu">cost_cap_usd</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.01</span><span class="at"> </span><span class="kw">}</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true"></a><span class="pp">---</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true"></a><span class="co"># ============ draft agent (起草回复) ============</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true"></a><span class="fu">agent</span><span class="kw">:</span><span class="at"> email-draft</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true"></a><span class="fu">type</span><span class="kw">:</span><span class="at"> reactive</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true"></a><span class="fu">model</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">primary</span><span class="kw">:</span><span class="at"> claude-sonnet-4.6</span><span class="kw">,</span><span class="at"> </span><span class="fu">fallback</span><span class="kw">:</span><span class="at"> haiku </span><span class="kw">}</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true"></a><span class="fu">triggers</span><span class="kw">:</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">event</span><span class="kw">:</span><span class="at"> email.draft.requested</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true"></a><span class="fu">tools</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">gmail.read</span><span class="kw">,</span><span class="at"> gmail.draft</span><span class="kw">]</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true"></a><span class="fu">memory</span><span class="kw">:</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true"></a><span class="at">  </span><span class="fu">semantic</span><span class="kw">:</span><span class="at"> vector://user-email-style</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true"></a><span class="at">  </span><span class="fu">episodic</span><span class="kw">:</span><span class="at"> pg://email-history</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true"></a><span class="fu">output</span><span class="kw">:</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true"></a><span class="at">  </span><span class="fu">emit_events</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">email.draft.ready</span><span class="kw">]</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true"></a><span class="fu">budget</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">tokens_per_run</span><span class="kw">:</span><span class="at"> 20k </span><span class="kw">}</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true"></a></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true"></a><span class="pp">---</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true"></a><span class="co"># ============ followup agent (定时巡检) ============</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true"></a><span class="fu">agent</span><span class="kw">:</span><span class="at"> email-followup</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true"></a><span class="fu">type</span><span class="kw">:</span><span class="at"> periodic</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true"></a><span class="fu">model</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">primary</span><span class="kw">:</span><span class="at"> haiku </span><span class="kw">}</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true"></a><span class="fu">triggers</span><span class="kw">:</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">cron</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;*/30 * * * *&quot;</span><span class="co">                  # 每 30 分钟</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true"></a><span class="fu">tools</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">gmail.search</span><span class="kw">]</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true"></a><span class="fu">output</span><span class="kw">:</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true"></a><span class="at">  </span><span class="fu">emit_events</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">email.draft.requested</span><span class="kw">]</span><span class="co">    # 复用 draft agent</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true"></a></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true"></a><span class="pp">---</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true"></a><span class="co"># ============ send agent (高危必审批) ============</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true"></a><span class="fu">agent</span><span class="kw">:</span><span class="at"> email-send</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true"></a><span class="fu">type</span><span class="kw">:</span><span class="at"> reactive</span></span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true"></a><span class="fu">triggers</span><span class="kw">:</span></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">event</span><span class="kw">:</span><span class="at"> email.draft.ready</span></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true"></a><span class="fu">tools</span><span class="kw">:</span></span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> gmail.send</span><span class="kw">,</span><span class="at"> </span><span class="fu">require_approval</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="at"> </span><span class="kw">}</span></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true"></a><span class="fu">output</span><span class="kw">:</span></span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true"></a><span class="at">  </span><span class="fu">emit_events</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">email.sent</span><span class="kw">,</span><span class="at"> email.send.rejected</span><span class="kw">]</span></span></code></pre></div>
+<h3 id="端到端时序一封邮件的旅程">4.3 端到端时序：一封邮件的旅程</h3>
+<pre><code>[Gmail Push API]
+      │
+      ▼  ① WebhookEmitter 收到推送
+┌─────────────────────────────────────┐
+│ envelope: {                          │
+│   topic: &quot;email.received&quot;,           │
+│   dedup_key: &quot;msg:abc123&quot;,           │
+│   payload: { msg_id, from, subj, .. }│
+│ }                                    │
+└──────────┬──────────────────────────┘
+           ▼  ② Bus.publish
+       Event Bus
+           │
+           ▼  ③ Router: email.received → email-triage
+       Router
+           │
+           ▼  ④ Agent Runtime 拉起 triage agent
+┌─────────────────────────────────────┐
+│ triage:                              │
+│   1. 拉 semantic memory (用户风格)   │
+│   2. tools.gmail.read(msg_id)        │
+│   3. tools.contact.lookup(from)      │
+│   4. LLM(haiku): 判断 important?     │
+│   5a. 不重要 → emit &quot;email.ignored&quot;  │
+│   5b. 重要   → emit &quot;email.draft.    │
+│                       requested&quot;     │
+└──────────┬──────────────────────────┘
+           ▼  ⑤ 新事件回 Bus
+       Event Bus
+           │
+           ▼  ⑥ Router → email-draft
+┌─────────────────────────────────────┐
+│ draft:                               │
+│   1. 拉 episodic (该联系人历史回复)  │
+│   2. 拉 semantic (用户风格 top-K)    │
+│   3. tools.gmail.read 拿全文+thread  │
+│   4. LLM(sonnet): 起草回复           │
+│   5. tools.gmail.draft(content)      │
+│   6. emit &quot;email.draft.ready&quot;        │
+└──────────┬──────────────────────────┘
+           ▼  ⑦ Bus → Router → email-send
+┌─────────────────────────────────────┐
+│ send:                                │
+│   1. tools.gmail.send(...)           │
+│      ↓                               │
+│      Tool Gateway 检测 require_      │
+│      approval=true → 暂停            │
+│      ↓                               │
+│      发审批到 Slack: &quot;回复给 X 关于  │
+│      Y? [Approve] [Reject] [Edit]&quot;   │
+│   2. 等用户回调                       │
+│   3. Approve → 真正发送              │
+│      → emit &quot;email.sent&quot;             │
+└──────────┬──────────────────────────┘
+           ▼  ⑧ 审计 + memory 写入
+   - episodic: 写入 thread + 决策 + 结果
+   - semantic: 若用户 Edit 后才发,
+                把&quot;用户编辑前后的 diff&quot;
+                作为新经验写入向量库
+                (这就是隐式学习风格)</code></pre>
+<h3 id="定时这条线24h-未回提醒-定期推送">4.4 定时这条线（24h 未回提醒 / 定期推送）</h3>
+<pre><code>[Cron: */30min]
+      │
+      ▼ CronEmitter (单实例 leader, timing wheel)
+   Bus: cron.tick.email-followup
+      │
+      ▼ Router → email-followup
+┌─────────────────────────────────────┐
+│ followup:                            │
+│   1. tools.gmail.search(            │
+│        &quot;to:me older_than:1d         │
+│         -has:my_reply&quot;)              │
+│   2. 对每封 → emit                  │
+│      &quot;email.draft.requested&quot;         │
+│   3. 复用 draft agent 的链路！       │
+└─────────────────────────────────────┘</code></pre>
+<blockquote>
+<p><strong>关键洞察</strong>：定时这条线<strong>没有重复实现 draft 逻辑</strong>，只是产生事件，复用流式管线。这就是事件总线架构的复用红利。</p>
+</blockquote>
+<h3 id="通用化定期推送场景">4.5 通用化：定期推送场景</h3>
+<p>把“邮件”换成“日报推送”，<strong>架构一行不动</strong>：</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true"></a><span class="fu">agent</span><span class="kw">:</span><span class="at"> daily-digest</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true"></a><span class="fu">type</span><span class="kw">:</span><span class="at"> periodic</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true"></a><span class="fu">triggers</span><span class="kw">:</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">cron</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;0 9 * * *&quot;</span><span class="co">                       # 每天 9 点</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true"></a><span class="fu">tools</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">metric.query</span><span class="kw">,</span><span class="at"> news.fetch</span><span class="kw">,</span><span class="at"> slack.send</span><span class="kw">]</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true"></a><span class="fu">memory</span><span class="kw">:</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true"></a><span class="at">  </span><span class="fu">semantic</span><span class="kw">:</span><span class="at"> vector://user-interest</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true"></a><span class="at">  </span><span class="fu">episodic</span><span class="kw">:</span><span class="at"> pg://digest-history</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true"></a><span class="fu">budget</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">tokens_per_run</span><span class="kw">:</span><span class="at"> 30k </span><span class="kw">}</span></span></code></pre></div>
+<p>执行流程：</p>
+<ol type="1">
+<li>Cron tick → Bus → daily-digest agent</li>
+<li>Agent 调 <code>metric.query</code> 拉昨天数据</li>
+<li>Agent 调 <code>news.fetch</code> 拉相关行业新闻</li>
+<li>Agent 拉 semantic memory（用户感兴趣的话题）</li>
+<li>LLM 整合成摘要</li>
+<li>Agent 调 <code>slack.send</code> 推送</li>
+<li>写入 episodic（用户点了哪几条 → 下次更精准）</li>
+</ol>
+<h3 id="关键设计细节">4.6 关键设计细节</h3>
+<h4 id="流-定时怎么统一">流 + 定时怎么“统一”</h4>
+<ul>
+<li>邮件到达：<code>email.received</code>（流式）</li>
+<li>24h 未回：<code>cron.tick.email-followup</code> → <code>email.draft.requested</code>（定时）</li>
+<li><strong>两条路径下游汇合到同一个 draft agent</strong>，agent 不需要知道自己是被哪种触发器叫醒的</li>
+</ul>
+<h4 id="风格学习memory-真正发挥价值">风格学习（memory 真正发挥价值）</h4>
+<ul>
+<li>用户每次 Approve 直接发 → 正样本</li>
+<li>用户 Edit 后再发 → diff 是高价值学习信号</li>
+<li>用户 Reject → 负样本</li>
+<li>写入 semantic memory，下次 draft 时 retrieval-on-demand</li>
+<li><strong>这是 agent 框架对比纯脚本的核心优势：自迭代</strong></li>
+</ul>
+<h4 id="高危操作gmail.send的处理">高危操作（gmail.send）的处理</h4>
+<ul>
+<li>Tool manifest 标记 <code>require_approval: true</code></li>
+<li>Tool Gateway 拦截 → Approval Hook → Slack 卡片</li>
+<li>用户响应前 agent 状态持久化（checkpoint）</li>
+<li>审批回调通过事件总线送回（<code>approval.granted</code> / <code>approval.rejected</code>）</li>
+<li>30 秒 Gmail undo 窗口期作为最后防线</li>
+</ul>
+<h4 id="误判保护">误判保护</h4>
+<ul>
+<li>Triage 误判“不重要” → 用户手动回了 → 监听 <code>email.user_replied</code>，写入 negative example</li>
+<li>Draft 质量差 → 用户 Reject → 同样进 memory</li>
+<li><strong>每个错误都成为下一次的训练数据</strong></li>
+</ul>
+<h4 id="成本控制">成本控制</h4>
+<table>
+<thead>
+<tr class="header">
+<th>步骤</th>
+<th>模型</th>
+<th>单封成本</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Triage</td>
+<td>Haiku</td>
+<td>~$0.001</td>
+</tr>
+<tr class="even">
+<td>Draft</td>
+<td>Sonnet</td>
+<td>~$0.01</td>
+</tr>
+<tr class="odd">
+<td><strong>小计</strong></td>
+<td></td>
+<td><strong>~$0.011</strong></td>
+</tr>
+</tbody>
+</table>
+<p>100 封/天 ≈ $1.1/天。per-agent 日预算 cap，超了停掉 + 通知。</p>
+<h4 id="幂等">幂等</h4>
+<ul>
+<li><code>dedup_key = &quot;msg:&quot; + message_id</code></li>
+<li>Gmail 偶尔重复推送 → Router 直接丢弃</li>
+<li>Send 操作用 <code>idempotency_key = &quot;send:&quot; + draft_id</code>，重试不会发两遍</li>
+</ul>
+<h3 id="错误场景演练">4.7 错误场景演练</h3>
+<table>
+<thead>
+<tr class="header">
+<th>场景</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Gmail webhook 漏推</td>
+<td>followup agent 兜底（cron 定期扫描）</td>
+</tr>
+<tr class="even">
+<td>Triage 把重要邮件判成垃圾</td>
+<td>监听用户手动回复事件 → 写负样本</td>
+</tr>
+<tr class="odd">
+<td>Draft agent 写出胡话</td>
+<td>Output Schema 校验 + Approval 强制人审</td>
+</tr>
+<tr class="even">
+<td>审批超时未响应</td>
+<td>24h 后 emit <code>approval.timeout</code> → 转入 followup</td>
+</tr>
+<tr class="odd">
+<td>误发已发送</td>
+<td>30s undo + 审计日志 + 告警</td>
+</tr>
+<tr class="even">
+<td>Anthropic API 挂了</td>
+<td>Model Router fallback 到 OpenAI</td>
+</tr>
+<tr class="odd">
+<td>Agent 崩溃</td>
+<td>checkpoint 恢复 + episodic memory replay</td>
+</tr>
+<tr class="even">
+<td>死循环（auto-reply 互相回复）</td>
+<td>trace_id 深度限制 + 同收件人冷却时间</td>
+</tr>
+</tbody>
+</table>
+<h3 id="通用化潜力">4.8 通用化潜力</h3>
+<p>把“邮件”换成别的 task，<strong>架构一行不动</strong>，只换 manifest + tools：</p>
+<table>
+<thead>
+<tr class="header">
+<th>Task</th>
+<th>流式触发</th>
+<th>定时触发</th>
+<th>关键工具</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>自动回邮件</td>
+<td>Gmail webhook</td>
+<td>24h 未回扫描</td>
+<td><code>gmail.*</code></td>
+</tr>
+<tr class="even">
+<td>Slack 自动响应</td>
+<td>Slack event</td>
+<td>提醒未读</td>
+<td><code>slack.*</code></td>
+</tr>
+<tr class="odd">
+<td>PR 自动 review</td>
+<td>GitHub webhook</td>
+<td>每天 stale PR 报告</td>
+<td><code>github.*</code></td>
+</tr>
+<tr class="even">
+<td>Issue 自动 triage</td>
+<td>issue 创建</td>
+<td>周例会前总结</td>
+<td><code>linear/jira.*</code></td>
+</tr>
+<tr class="odd">
+<td>实验监控</td>
+<td>metric 异常</td>
+<td>小时巡检</td>
+<td><code>prometheus.*</code></td>
+</tr>
+<tr class="even">
+<td>文献追踪</td>
+<td>arXiv RSS</td>
+<td>每周 digest</td>
+<td><code>arxiv.*</code></td>
+</tr>
+<tr class="odd">
+<td>客服自动应答</td>
+<td>客户消息</td>
+<td>SLA 检查</td>
+<td><code>intercom.*</code></td>
+</tr>
+<tr class="even">
+<td>日报 / 周报推送</td>
+<td>—</td>
+<td>每天 / 每周 cron</td>
+<td><code>metric.* + slack.*</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>这就是“通用 auto-task 平台”的真正含义：场景越多越证明抽象正确。</strong></p>
+</blockquote>
+<hr />
+<h2 id="关键设计决策与-trade-offs">5. 关键设计决策与 Trade-offs</h2>
+<table>
+<thead>
+<tr class="header">
+<th>维度</th>
+<th>选择</th>
+<th>代价</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Bus 选型</strong></td>
+<td>Kafka</td>
+<td>不原生支持 delay queue</td>
+<td>吞吐 + 生态最好；delay 用 Pulsar 或外挂</td>
+</tr>
+<tr class="even">
+<td><strong>一致性</strong></td>
+<td>at-least-once + 业务幂等</td>
+<td>业务侧扛去重</td>
+<td>exactly-once 代价远超收益</td>
+</tr>
+<tr class="odd">
+<td><strong>Cron 精度</strong></td>
+<td>分钟级走 bus；秒级走本地 timer</td>
+<td>两套实现</td>
+<td>总线延迟天然 ~100ms，秒级要绕开</td>
+</tr>
+<tr class="even">
+<td><strong>Worker 模型</strong></td>
+<td>stateless 优先；长任务用 actor</td>
+<td>两种 runtime</td>
+<td>默认便宜，重场景才上成本</td>
+</tr>
+<tr class="odd">
+<td><strong>Agent vs Function</strong></td>
+<td>混合架构</td>
+<td>双轨复杂</td>
+<td>能用 function 别上 agent</td>
+</tr>
+<tr class="even">
+<td><strong>Memory 隔离</strong></td>
+<td>默认 per-agent，shared 显式</td>
+<td>协作要写代码</td>
+<td>安全 + 简单优先</td>
+</tr>
+<tr class="odd">
+<td><strong>Tool 路径</strong></td>
+<td>业务工具走 Gateway，热路径白名单直连</td>
+<td>治理粒度细</td>
+<td>平衡延迟与审计</td>
+</tr>
+<tr class="even">
+<td><strong>Model 路由</strong></td>
+<td>静态默认 + LLM 兜底</td>
+<td>双轨</td>
+<td>80% 场景静态够用</td>
+</tr>
+<tr class="odd">
+<td><strong>跨 agent 通信</strong></td>
+<td>走总线，不走 RPC</td>
+<td>多一跳延迟</td>
+<td>解耦 + 可观测 + 可重放</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="演进路径">6. 演进路径</h2>
+<pre><code>v0  cron + 脚本调 LLM             (一晚上能做完，但不可扩展)
+       ↓
+v1  加 webhook 支持流式           (流定时分离，两套代码)
+       ↓
+v2  抽出 Event Bus                (统一触发 → 第一次架构升华)
+       ↓
+v3  triage/draft/send 分 agent    (multi-agent → 复用 + 解耦)
+       ↓
+v4  加 Memory + 风格学习           (agent 真正&quot;懂&quot;用户)
+       ↓
+v5  接入通用平台                   (一份 manifest 跑邮件,
+                                    再写一份跑 Slack / PR / ...)
+       ↓
+v6  多机房 + 多租户 + Marketplace  (平台化)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>阶段</th>
+<th>关键能力</th>
+<th>估算工时</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>v0</td>
+<td>单脚本 + cron</td>
+<td>1 天</td>
+</tr>
+<tr class="even">
+<td>v1</td>
+<td>+ webhook + 流式</td>
+<td>3 天</td>
+</tr>
+<tr class="odd">
+<td>v2</td>
+<td>+ Event Bus</td>
+<td>1 周</td>
+</tr>
+<tr class="even">
+<td>v3</td>
+<td>+ multi-agent</td>
+<td>2 周</td>
+</tr>
+<tr class="odd">
+<td>v4</td>
+<td>+ Memory 三层</td>
+<td>2 周</td>
+</tr>
+<tr class="even">
+<td>v5</td>
+<td>+ manifest 平台</td>
+<td>1 月</td>
+</tr>
+<tr class="odd">
+<td>v6</td>
+<td>+ 多租户 / 多机房</td>
+<td>季度</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="总结">7. 总结</h2>
+<h3 id="一句话架构">7.1 一句话架构</h3>
+<blockquote>
+<p>把 <strong>Trigger / Event / Agent</strong> 三层用事件总线串起来： Trigger 把异构源标准化进 Bus；Router 按事件分发到 Agent Runtime；Agent 通过 Memory / Tool / Model 三个 Gateway 完成 think-act-observe 循环；输出可能 emit 新事件回 Bus 形成 multi-agent 协作；Cross-cutting 提供状态、可观测、成本、安全能力贯穿全链路。</p>
+</blockquote>
+<h3 id="三性如何落地">7.2 三性如何落地</h3>
+<table>
+<thead>
+<tr class="header">
+<th>目标</th>
+<th>实现手段</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>效率</strong></td>
+<td>微批 + 分区 + 池化 + 模型分级 + Prompt Cache</td>
+</tr>
+<tr class="even">
+<td><strong>可扩展性</strong></td>
+<td>事件总线解耦 + 声明式 manifest + Schema Registry + Topic 通配</td>
+</tr>
+<tr class="odd">
+<td><strong>通用性</strong></td>
+<td>Trigger / Event / Agent 三层正交，新场景 = 写 manifest</td>
+</tr>
+</tbody>
+</table>
+<h3 id="流式-定时统一的本质">7.3 流式 + 定时统一的本质</h3>
+<pre><code>Long-Running Agent:
+    wait_any( inbox , next_wakeup )
+              ↑          ↑
+              流式       定时
+              事件       唤醒</code></pre>
+<blockquote>
+<p><strong>流式给 inbox，定时给 timer，Agent 自己决定下一次什么时候醒——这是流式与定时的真正统一。</strong></p>
+</blockquote>
+<h3 id="多智能体协作的本质">7.4 多智能体协作的本质</h3>
+<p>不要 RPC，<strong>全部走事件总线</strong>： - Multi-agent = single-agent 的自然扩展 - 解耦：A 不需要知道 B 存在 - 可观测：所有协作链路在 trace 里 - 可重放：把事件重发就能重现整个协作</p>
+<h3 id="邮件案例的启示">7.5 邮件案例的启示</h3>
+<p>“自动回复邮件”看似简单，但同时包含 <strong>流式触发、定时触发、multi-agent 协作、记忆学习、人机协作审批</strong> 五个维度——正好把架构每一层都用上。</p>
+<blockquote>
+<p><strong>架构的价值在于：今天解决邮件，明天换工具就能解决 Slack/PR/监控；今天 4 个 agent，明天扩到 40 个也是改 manifest 不改平台。</strong></p>
+</blockquote>
+<hr />
+<h2 id="工作预期">8. 工作预期</h2>
+<p>希望从事大模型后训练相关工作，在参与 SFT、RLHF 及模型对齐优化的基础上，重点探索 agentic 能力在 AI persona 和社交场景中的落地，例如多轮对话中的目标驱动、长期记忆与人设一致性，以及在复杂互动中的策略决策能力。同时希望参与面向社交场景的数据构建与自动化 pipeline 设计，通过构造多轮交互与任务链数据，提升模型在真实沟通环境中的理解能力与响应质量。在实际工作中，通过 bad case 分析持续优化模型在用户互动中的表现，减少幻觉与不一致问题。长期来看，希望在大模型后训练与 agentic 社交智能方向持续深入，参与构建具备稳定人格与高质量互动能力的 AI 系统。同时也希望能融入积极向上的团队，在良性合作的氛围中共同成长。</p>
+<hr />
+<p><em>文档版本：v1.0 | 设计目标：兼顾效率、可扩展性、通用性的多智能体 Auto-Task 架构</em></p>
+</body>
+</html>
